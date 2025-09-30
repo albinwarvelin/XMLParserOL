@@ -11,7 +11,7 @@ namespace XMLParserOL_UI
     public partial class XMLParserOL_Form : Form
     {
         XmlDocument xmlDoc = new XmlDocument();
-        XmlNodeList competitors;
+        XmlNodeList? competitors;
         Stopwatch timer = new Stopwatch();
 
         public XMLParserOL_Form()
@@ -58,8 +58,8 @@ namespace XMLParserOL_UI
                                         if (childnode.Name == "Id")
                                         {
 
-                                            var country = childnode.Attributes["type"];
-                                            if (!coutries.Contains(country.Value))
+                                            var country = childnode.Attributes?["type"];
+                                            if (country !=null && !coutries.Contains(country.Value))
                                             {
                                                 coutries.Add(country.Value);
                                             }
@@ -67,7 +67,7 @@ namespace XMLParserOL_UI
                                         if (childnode.Name == "Name")
                                         {
                                             var club = childnode.InnerText;
-                                            if (!clubs.Contains(club))
+                                            if (club != null && !clubs.Contains(club))
                                             {
                                                 clubs.Add(club);
                                             }
@@ -127,48 +127,63 @@ namespace XMLParserOL_UI
 
                         int x = 0;
                         Errortext.Text = "Found " + x + " competitors";
-
-                        foreach (XmlNode competitor in competitors)
+                        if (competitors != null)
                         {
-                            foreach (XmlNode competitorChildnodes in competitor.ChildNodes)
+                            Errortext.Text = "No competitors loaded";
+                            foreach (XmlNode competitor in competitors)
                             {
-                                if (competitorChildnodes.Name == "Organisation")
+                                foreach (XmlNode competitorChildnodes in competitor.ChildNodes)
                                 {
-                                    foreach (XmlNode childnode in competitorChildnodes.ChildNodes)
+                                    if (competitorChildnodes.Name == "Organisation")
                                     {
-                                        if (childnode.Name == "Name")
+                                        foreach (XmlNode childnode in competitorChildnodes.ChildNodes)
                                         {
-                                            foreach (var checkedItem in ccbClub.CheckedItems)
+                                            if (childnode.Name == "Name")
                                             {
-                                                if (childnode.FirstChild.Value.ToLower() == checkedItem.ToString().ToLower())
+                                                foreach (var checkedItem in ccbClub.CheckedItems)
                                                 {
-                                                    filteredList.Add(competitor);
-                                                    x++;
-                                                    Errortext.Text = ("Found " + x + " competitors from " + ccbClub.CheckedItems.Count + " club(s)");
+                                                    if (childnode.FirstChild != null && childnode.FirstChild.Value != null && childnode.FirstChild.Value.Equals(checkedItem.ToString(), StringComparison.CurrentCultureIgnoreCase))
+                                                    {
+                                                        filteredList.Add(competitor);
+                                                        x++;
+                                                        Errortext.Text = ("Found " + x + " competitors from " + ccbClub.CheckedItems.Count + " club(s)");
+                                                    }
                                                 }
                                             }
                                         }
                                     }
                                 }
                             }
+
+                            XmlDocument outDoc = new XmlDocument();
+                            XmlNode header = outDoc.CreateXmlDeclaration("1.0", "UTF-8", null);
+                            outDoc.AppendChild(header);
+
+                            // Ensure xmlDoc.LastChild is not null before importing
+                            if (xmlDoc.LastChild != null)
+                            {
+                                XmlNode competitorList = outDoc.ImportNode(xmlDoc.LastChild, false);
+
+                                foreach (XmlNode competitor in filteredList)
+                                {
+                                    competitorList.AppendChild(outDoc.ImportNode(competitor, true));
+                                }
+
+                                outDoc.AppendChild(competitorList);
+
+                                outDoc.Save(XMLFile.Text);
+                                timer.Stop();
+                                Errortext.Text = "Saved " + filteredList.Count + " competitors from " + ccbClub.CheckedItems.Count + " clubs in: " + timer.ElapsedMilliseconds.ToString() + " ms.";
+                            }
+                            else
+                            {
+                                Errortext.Text = "No valid root element found in the loaded XML document.";
+                            }
                         }
-
-                        XmlDocument outDoc = new XmlDocument();
-                        XmlNode header = outDoc.CreateXmlDeclaration("1.0", "UTF-8", null);
-                        outDoc.AppendChild(header);
-
-                        XmlNode competitorList = outDoc.ImportNode(xmlDoc.LastChild, false);
-
-                        foreach (XmlNode competitor in filteredList)
+                        else
                         {
-                            competitorList.AppendChild(outDoc.ImportNode(competitor, true));
+                            Errortext.Text = "No competitors loaded";
                         }
-
-                        outDoc.AppendChild(competitorList);
-
-                        outDoc.Save(XMLFile.Text);
-                        timer.Stop();
-                        Errortext.Text = "Saved " + filteredList.Count + " competitors from " + ccbClub.CheckedItems.Count + " clubs in: " + timer.ElapsedMilliseconds.ToString() + " ms.";
                     }
                 }
             }
