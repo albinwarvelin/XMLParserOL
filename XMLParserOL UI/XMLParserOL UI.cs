@@ -77,6 +77,7 @@ namespace XMLParserOL_UI
                             }
                         }
                         //clubs = clubs.OrderBy(c => c).ToList();
+                        ccbClub.Items.Clear();  
                         ccbClub.Items.AddRange(clubs.OrderBy(c => c).ToArray());
                         timer.Stop();
                         Errortext.Text = "Found and read " + ccbClub.Items.Count + " clubs in: " + timer.ElapsedMilliseconds.ToString() + " ms.";
